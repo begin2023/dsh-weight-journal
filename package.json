@@ -1,9 +1,9 @@
 {
   "name": "dsh-weight-journal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "Daily weight journal with a trend-chart page in the DeepSeek Harness Web GUI.",
+  "description": "Daily weight journal with a trend-chart page and an ambient reminder capsule in the DeepSeek Harness Web GUI.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -20,7 +20,9 @@
     "README.md"
   ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,

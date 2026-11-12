@@ -8,6 +8,21 @@ day, one honest trend.
 A scale icon sits in the left sidebar's panel row (above Settings). It opens the
 **Weight journal** main-panel page, beside Plugins and Schedules.
 
+## The reminder capsule
+
+While the app is open, a small capsule holds the centre of the conversation title
+row — the strip that stays visible on every panel — and cycles every 5.4 seconds
+through one sentence in eight languages, starting in the language the app is set
+to. Clicking it selects the journal, so the page has a second entrance.
+
+It reads the journal before painting, so it states today truthfully: the day's
+weight once recorded, with the trend mark inside turning accent and its end dot
+filling in, or "nothing yet" before that. It registers into the frame's
+`shell.overlay` seat, a whole-app layer that is click-through by default; the
+capsule opts back into pointer events for its own 30-pixel row only. Being
+centred, it stays clear of the session title on the left and the utilities on the
+right until the window is narrow enough for the three to meet.
+
 ## What the page does
 
 - **Record** — type today's weight (or use `−` / `+` in 0.1 steps), pick another
@@ -41,7 +56,7 @@ the tool; the file stays where it is.
 | File | Role |
 |---|---|
 | `index.js` | Host half: the JSON store, two `ctx.connection.fetch` routes, the tool |
-| `client.js` | Browser half: the page, the chart, the sidebar icon, the copy |
+| `client.js` | Browser half: the page, the chart, the reminder capsule, the sidebar icon, the copy |
 | `cordis.patch.yml` | Inserts the Host row |
 | `locale/*.json` | Plugin Manager title, description, detail document |
 | `docs/` | The detail document and its one feature image |

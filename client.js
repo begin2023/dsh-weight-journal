@@ -7,6 +7,10 @@
  * host theme's `--dsw-alias-*` tokens, so it follows light/dark and every
  * shipped theme without a local palette.
  *
+ * A third registration puts a reminder capsule in `shell.overlay` — the frame's
+ * click-through floating layer — so the day's state stays visible from every
+ * panel, speaking a different language on each beat.
+ *
  * Data reaches the browser through the Host half's two authenticated Fetch
  * routes; the store below owns the fetch, the snapshot, and the subscriptions
  * the slot renderer turns into hook props.
@@ -33,6 +37,10 @@ window.__ModuleLoader__.load({
     const MAX_GAP_MS = 21 * DAY_MS
     /** Trailing-window size of the mean line, in readings. */
     const MEAN_WINDOW = 7
+    /** Overlay cell id of the frame-wide reminder capsule. */
+    const REMINDER_ID = 'weight-reminder'
+    /** How long one reminder language holds before the next beat. */
+    const REMINDER_BEAT_MS = 5_400
 
     /* ------------------------------------------------------------------ copy */
 
@@ -560,20 +568,28 @@ window.__ModuleLoader__.load({
       const commit = (state) => {
         source.publish({ status: 'ready', entries: state.entries, settings: state.settings, error: null })
       }
+      // The reminder and the page mount together at startup; one read serves both.
+      let pending = null
       return {
-        async reload() {
+        reload() {
+          if (pending !== null) return pending
           const current = source.getSnapshot()
           source.publish({ ...current, status: current.entries.length === 0 ? 'loading' : 'refreshing', error: null })
-          try {
-            commit(await callHost('read'))
-          } catch (error) {
-            source.publish({
-              status: 'error',
-              entries: current.entries,
-              settings: current.settings,
-              error: error instanceof Error ? error.message : String(error),
-            })
-          }
+          pending = (async () => {
+            try {
+              commit(await callHost('read'))
+            } catch (error) {
+              source.publish({
+                status: 'error',
+                entries: current.entries,
+                settings: current.settings,
+                error: error instanceof Error ? error.message : String(error),
+              })
+            }
+          })()
+          return pending.finally(() => {
+            pending = null
+          })
         },
         async save(input) {
           try {
@@ -1277,9 +1293,101 @@ window.__ModuleLoader__.load({
 .wj-dialogFoot .wj-feedback { flex: 1; margin: 0; }
 @keyframes wj-fade { from { opacity: 0; } to { opacity: 1; } }
 
+/* ---- reminder ---- */
+.wj-reminderLayer {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  pointer-events: none;
+}
+.wj-reminder {
+  --wj-ring-width: var(--dsw-focus-ring-width, 2px);
+  --wj-ring-color: var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: 240px;
+  height: 30px;
+  padding: 0 9px 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-family);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  animation: wj-rise 540ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+.wj-reminderGlyph {
+  display: inline-flex;
+  flex: none;
+  color: var(--dsw-alias-label-secondary);
+  transition: color 200ms ease;
+}
+.wj-reminderText {
+  min-width: 116px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+}
+.wj-reminderLine {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+  animation: wj-beat 640ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.wj-reminderGo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  opacity: 0.55;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+.wj-reminder.is-recorded .wj-reminderGlyph { color: var(--dsw-alias-brand-primary); }
+.wj-reminder:not(.is-recorded) .wj-reminderGlyph circle { animation: wj-wait 3.4s ease-in-out infinite; }
+.wj-reminder:focus-visible { outline: var(--wj-ring-width) solid var(--wj-ring-color); outline-offset: 2px; }
+.wj-reminder:focus-visible .wj-reminderGo { opacity: 1; transform: translateX(1px); }
+@media (hover: hover) {
+  .wj-reminder:hover {
+    border-color: var(--dsw-alias-border-l3);
+    background: var(--dsw-alias-bg-layer-3);
+  }
+  .wj-reminder:hover .wj-reminderGo { opacity: 1; transform: translateX(1px); }
+}
+@keyframes wj-rise {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes wj-beat {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes wj-wait {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.3; }
+}
+
 /* ---- misc ---- */
 @media (prefers-reduced-motion: reduce) {
-  .wj-page *, .wj-page *::before, .wj-page *::after {
+  .wj-page *, .wj-page *::before, .wj-page *::after,
+  .wj-reminder, .wj-reminder * {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -2059,6 +2167,170 @@ window.__ModuleLoader__.load({
         }, saving ? '…' : t('settings.save')))))
     }
 
+    /* -------------------------------------------------------------- reminder */
+
+    /**
+     * The reminder's beats, in cycle order: today's state spoken in one language
+     * per beat. `today` receives an already-localized weight, so the digits
+     * follow the beat's own language too. Every line is kept short on purpose —
+     * the capsule is a fixed width and a long string would be clipped.
+     */
+    const REMINDER_VOICES = [
+      { lang: 'zh', tag: 'zh-CN', open: '打开体重手账', empty: '今天还没记录', today: (weight) => `今天 ${weight} kg` },
+      { lang: 'en', tag: 'en-US', open: 'Open the weight journal', empty: 'Nothing yet today', today: (weight) => `${weight} kg today` },
+      { lang: 'ja', tag: 'ja-JP', open: '体重手帳を開く', empty: '今日はまだ未記録', today: (weight) => `今日 ${weight} kg` },
+      { lang: 'fr', tag: 'fr-FR', open: 'Ouvrir le journal de poids', empty: 'Rien aujourd’hui', today: (weight) => `${weight} kg aujourd’hui` },
+      { lang: 'es', tag: 'es-ES', open: 'Abrir el diario de peso', empty: 'Nada aún hoy', today: (weight) => `${weight} kg hoy` },
+      { lang: 'de', tag: 'de-DE', open: 'Gewichtstagebuch öffnen', empty: 'Heute noch nichts', today: (weight) => `${weight} kg heute` },
+      { lang: 'ru', tag: 'ru-RU', open: 'Открыть дневник веса', empty: 'Нет записи', today: (weight) => `${weight} kg сегодня` },
+      { lang: 'pt', tag: 'pt-PT', open: 'Abrir o diário de peso', empty: 'Nada ainda hoje', today: (weight) => `${weight} kg hoje` },
+    ]
+
+    /** One formatter per beat language, built once and reused. */
+    const weightFormatters = new Map()
+
+    /**
+     * A weight in one language's own decimal separator and digits.
+     * @param {string} tag - BCP 47 tag of the beat's language.
+     * @param {number} value - kilograms.
+     * @returns {string} the formatted weight.
+     */
+    function spokenWeight(tag, value) {
+      let formatter = weightFormatters.get(tag)
+      if (formatter === undefined) {
+        try {
+          formatter = new Intl.NumberFormat(tag, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+        } catch {
+          formatter = null
+        }
+        weightFormatters.set(tag, formatter)
+      }
+      if (formatter === null) return kg(value)
+      try {
+        return formatter.format(value)
+      } catch {
+        return kg(value)
+      }
+    }
+
+    /**
+     * The capsule's glyph: a falling trend whose last point is the day itself,
+     * hollow until the day is recorded. Reads as a fragment of the chart rather
+     * than a second copy of the sidebar icon.
+     * @param {{ recorded: boolean }} props - whether today already has a reading.
+     * @returns {import('react').ReactElement} the glyph.
+     */
+    function TrendMark({ recorded }) {
+      return h('svg', {
+        width: 18,
+        height: 12,
+        viewBox: '0 0 18 12',
+        fill: 'none',
+        'aria-hidden': 'true',
+        style: { display: 'block' },
+      },
+      h('path', {
+        d: 'M1.6 3.5 5.7 6.2 9.3 4.5 12 8.1',
+        stroke: 'currentColor',
+        strokeWidth: 1.4,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      }),
+      h('circle', {
+        cx: 14.6,
+        cy: 8.9,
+        r: 2,
+        fill: recorded ? 'currentColor' : 'none',
+        stroke: recorded ? 'none' : 'currentColor',
+        strokeWidth: recorded ? undefined : 1.2,
+      }))
+    }
+
+    /**
+     * The frame-wide reminder: a 30px capsule at the top of the window that
+     * speaks today's state in one of several languages, changing on a timer.
+     * Clicking it opens the journal page; it is the only always-visible entry
+     * point to the journal besides the sidebar row.
+     * @param {object} props - slot runtime props plus the injected journal face.
+     * @returns {import('react').ReactElement} the capsule.
+     */
+    function WeightReminder(props) {
+      const useJournal = typeof props.useJournal === 'function' ? props.useJournal : null
+      const snapshot = useJournal === null ? null : useJournal(value => value)
+      const actions = props.actions
+      const loaded = React.useRef(false)
+
+      // The capsule is always mounted, so it — not the page — owns the first
+      // read; the page's own reload joins the same request.
+      React.useEffect(() => {
+        if (loaded.current) return
+        loaded.current = true
+        if (actions && typeof actions.reload === 'function') actions.reload()
+      }, [actions])
+
+      // The cycle opens in the reader's own language and then walks on.
+      const [beat, setBeat] = React.useState(() => {
+        const primary = String(localeTag(props.locale)).toLowerCase().split(/[-_]/)[0]
+        const found = REMINDER_VOICES.findIndex(voice => voice.lang === primary)
+        return found < 0 ? 0 : found
+      })
+
+      React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined
+        const timer = window.setInterval(() => {
+          setBeat(current => (current + 1) % REMINDER_VOICES.length)
+        }, REMINDER_BEAT_MS)
+        return () => window.clearInterval(timer)
+      }, [])
+
+      // An unreadable journal still leaves the day unrecorded as far as the
+      // reminder is concerned; the page owns explaining the failure.
+      const entries = snapshot === null || snapshot.status === 'error' ? [] : snapshot.entries
+      const today = todayKey()
+      let reading = null
+      for (let index = entries.length - 1; index >= 0; index -= 1) {
+        if (entries[index].date === today) {
+          reading = entries[index]
+          break
+        }
+      }
+
+      const voice = REMINDER_VOICES[beat % REMINDER_VOICES.length]
+      const text = reading === null
+        ? voice.empty
+        : voice.today(spokenWeight(voice.tag, reading.weight))
+      // The layer's projection supplies hooks, not a translator, so the tooltip
+      // rides along with the language of the beat instead.
+      const action = voice.open
+
+      return h('div', { className: 'wj-reminderLayer' },
+        h('button', {
+          type: 'button',
+          className: reading === null ? 'wj-reminder' : 'wj-reminder is-recorded',
+          lang: voice.tag,
+          title: `${text} · ${action}`,
+          'aria-label': `${text}. ${action}`,
+          onClick: () => {
+            if (typeof props.open === 'function') props.open()
+          },
+        },
+        h('span', { className: 'wj-reminderGlyph', 'aria-hidden': 'true' }, h(TrendMark, { recorded: reading !== null })),
+        h('span', { className: 'wj-reminderText' },
+          h('span', {
+            key: `${voice.lang}:${reading === null ? 'empty' : reading.weight}`,
+            className: 'wj-reminderLine',
+          }, text)),
+        h('span', { className: 'wj-reminderGo', 'aria-hidden': 'true' },
+          h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', fill: 'none', style: { display: 'block' } },
+            h('path', {
+              d: 'M4.5 2.5 8 6l-3.5 3.5',
+              stroke: 'currentColor',
+              strokeWidth: 1.5,
+              strokeLinecap: 'round',
+              strokeLinejoin: 'round',
+            })))))
+    }
+
     /* ------------------------------------------------------------------ page */
 
     /**
@@ -2537,12 +2809,32 @@ window.__ModuleLoader__.load({
         return translator(translate)('panel')
       }
 
+      /**
+       * Open the journal page, wherever the reader clicks the reminder.
+       * @returns {void}
+       */
+      function openJournal() {
+        let layout = null
+        try {
+          layout = ctx.get('layout')
+        } catch {
+          layout = null
+        }
+        if (layout === null || layout === undefined || typeof layout.selectPanel !== 'function') return
+        try {
+          layout.selectPanel(PANEL_ID)
+        } catch {
+          // The panel key is not registered in this build; nothing to open.
+        }
+      }
+
       ctx.effect(() => {
         const source = createSource()
         const bound = {
           hooks: { journal: { getSnapshot: source.getSnapshot, subscribe: source.subscribe } },
           actions: createActions(source),
           locale,
+          open: openJournal,
         }
 
         const disposers = [
@@ -2559,6 +2851,14 @@ window.__ModuleLoader__.load({
             locale: NS,
             label: panelLabel,
           }, PanelIcon)),
+          // The overlay seat projects hooks rather than a translator, so the
+          // capsule carries its own copy in the language of the current beat.
+          ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+            name: 'shell.overlay',
+            id: REMINDER_ID,
+            order: 50,
+            inject: () => bound,
+          }, WeightReminder)),
         ]
 
         return () => {
