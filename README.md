@@ -78,14 +78,23 @@ the tool; the file stays where it is.
 | `locale/*.json` | Plugin Manager title, description, detail document |
 | `docs/` | The detail document and its one feature image |
 | `icon.svg` | Plugin Manager icon |
+| `assets/icon-180.png` | The square tile the plugin market shows |
 
 ## Install and update
 
-The bundle is a plain package directory; DSH installs it by linking it into the
-profile, so **where the directory lives is part of the installation**.
+From the registry, into a profile:
 
-- **Install:** in the Web GUI open Plugins and use *Add plugin* to pick this
-  directory, or call the `plugin_manager` tool with
+```sh
+dsh plugin --profile web add dsh-weight-journal
+```
+
+Or from the Web GUI: **Plugins → Add plugin** and give the package name, a
+`github:` spec, or a directory. The bundle is a plain package directory; when it
+is installed from a directory DSH links it into the profile, so **where the
+directory lives is part of the installation**.
+
+- **Install from a checkout:** in the Web GUI open Plugins and use *Add plugin*
+  to pick this directory, or call the `plugin_manager` tool with
   `action: install_bundle` and this absolute path.
 - **Update:** edit the files here. The browser half is re-read from this
   directory, so a page refresh picks it up; a change to `index.js` (the Host
