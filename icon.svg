@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+  <defs>
+    <linearGradient id="wjIconBody" x1="18" y1="12.4" x2="18" y2="29.6" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6377CE"/>
+      <stop offset="1" stop-color="#45529F"/>
+    </linearGradient>
+  </defs>
+  <path d="M12.4 13.6v-2.4a5.6 5.6 0 0 1 11.2 0v2.4" stroke="#8E9AD1" stroke-width="2.3" stroke-linecap="round"/>
+  <rect x="7" y="12.4" width="22" height="17.2" rx="5.6" fill="url(#wjIconBody)"/>
+  <rect x="12.4" y="19.7" width="11.2" height="2.2" rx="1.1" fill="#EEF1FC" opacity="0.92"/>
+  <circle cx="18" cy="25.5" r="1.25" fill="#EEF1FC" opacity="0.55"/>
+</svg>

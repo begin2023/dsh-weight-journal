@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Weight journal",
+    "description": "A daily weight journal page in the Web GUI, opened from the scale icon above Settings in the left sidebar. One reading per calendar day, in kilograms: type the number or use − / +, add an optional note, save — and saving a day that already has a reading replaces it. The page shows the current weight and its change, the 7-day mean, the 30-day change, the lowest reading and the streak, then a smooth trend chart with 7-day, 30-day, 90-day and all-time ranges, a hover readout with the previous reading's difference, a 7-reading mean line and a dashed goal line. Below it, weekly movement compares each week with the last, and the recent entries list loads any past day back into the form for editing or deletes it after an inline confirmation. A height and a goal weight set under Settings add BMI and goal progress. The model writes to the same journal through its weight_journal tool, so a weight stated in a conversation is recorded without opening the page. Readings stay on this machine in $DSH_HOME/storages/weight-journal.json; the plugin makes no network request. Disabling the plugin hides the page and the tool and leaves that file untouched.",
+    "detail": "docs/DETAIL.md"
+  }
+}

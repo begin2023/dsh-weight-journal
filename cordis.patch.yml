@@ -1,0 +1,8 @@
+# Bundle patch: the row loads this package's main entry as the Host half (the
+# weight store, its two JSON routes, and the model-facing tool). The
+# `dsh.client` declaration in package.json makes the Web app load the same
+# package's ./client bundle as the browser half (the journal page and the
+# sidebar panel icon).
+- insert:
+    - id: weight-journal
+      name: dsh-weight-journal
