@@ -47,6 +47,7 @@ window.__ModuleLoader__.load({
     const ZH = {
       panel: '体重手账',
       'head.subtitle': '每天一条记录，看清长期趋势',
+      'head.back': '返回对话',
       'head.settings': '设置',
       'hero.kicker': '当前体重',
       'hero.noData': '还没有记录',
@@ -116,6 +117,7 @@ window.__ModuleLoader__.load({
     const EN = {
       panel: 'Weight journal',
       'head.subtitle': 'One line a day, so the trend is visible',
+      'head.back': 'Back to conversation',
       'head.settings': 'Settings',
       'hero.kicker': 'Current weight',
       'hero.noData': 'Nothing recorded yet',
@@ -679,6 +681,40 @@ window.__ModuleLoader__.load({
   padding-top: calc(var(--wj-top) + var(--dsh-frame-top-clearance, 0px));
 }
 .wj-headText { min-width: 0; }
+/* A central panel gets no title row of its own in the frame, so the way back to
+   the Conversation sits above the title, on the column's own left edge. */
+.wj-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+  margin: 0 0 4px -4px;
+  padding: 0 7px 0 3px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.16s var(--ds-ease-in-out, ease), color 0.16s var(--ds-ease-in-out, ease);
+}
+.wj-crumb svg {
+  flex: none;
+  opacity: 0.8;
+  transition: transform 0.16s var(--ds-ease-in-out, ease), opacity 0.16s var(--ds-ease-in-out, ease);
+}
+@media (hover: hover) {
+  .wj-crumb:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+    color: var(--dsw-alias-label-primary);
+  }
+  .wj-crumb:hover svg { opacity: 1; transform: translateX(-1px); }
+}
+.wj-crumb:active { background: var(--dsw-alias-interactive-bg-active); }
+.wj-crumb:focus-visible { outline: var(--wj-ring-width) solid var(--wj-ring-color); outline-offset: 1px; }
 .wj-title {
   margin: 0;
   font-size: 20px;
@@ -1513,6 +1549,29 @@ window.__ModuleLoader__.load({
       }),
       h('circle', { cx: 9.1, cy: 5.2, r: 1.6, stroke: 'currentColor', strokeWidth: 1.3 }),
       h('circle', { cx: 6.9, cy: 10.8, r: 1.6, stroke: 'currentColor', strokeWidth: 1.3 }))
+    }
+
+    /**
+     * Left chevron for the header's way back to the Conversation.
+     * @param {{ size?: number }} props - Pixel size of the square glyph.
+     * @returns {import('react').ReactElement} the glyph.
+     */
+    function ChevronLeftIcon({ size = 16 }) {
+      return h('svg', {
+        width: size,
+        height: size,
+        viewBox: '0 0 16 16',
+        fill: 'none',
+        'aria-hidden': 'true',
+        style: { display: 'block' },
+      },
+      h('path', {
+        d: 'M9.8 3.6 5.4 8l4.4 4.4',
+        stroke: 'currentColor',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      }))
     }
 
     /* ------------------------------------------------------------ sub views */
@@ -2699,6 +2758,13 @@ window.__ModuleLoader__.load({
           h('div', { className: 'wj-content' },
             h('header', { className: 'wj-head' },
               h('div', { className: 'wj-headText' },
+                typeof props.back === 'function'
+                  ? h('button', {
+                    type: 'button',
+                    className: 'wj-crumb',
+                    onClick: props.back,
+                  }, h(ChevronLeftIcon, { size: 14 }), t('head.back'))
+                  : null,
                 h('h1', { className: 'wj-title' }, t('panel')),
                 h('p', { className: 'wj-subtitle' }, t('head.subtitle'))),
               h('div', { className: 'wj-actions' },
@@ -2810,10 +2876,11 @@ window.__ModuleLoader__.load({
       }
 
       /**
-       * Open the journal page, wherever the reader clicks the reminder.
+       * Swap the central panel without touching the current Session.
+       * @param {string | null} panelId - Registered main key, or null for the Conversation.
        * @returns {void}
        */
-      function openJournal() {
+      function showPanel(panelId) {
         let layout = null
         try {
           layout = ctx.get('layout')
@@ -2822,10 +2889,26 @@ window.__ModuleLoader__.load({
         }
         if (layout === null || layout === undefined || typeof layout.selectPanel !== 'function') return
         try {
-          layout.selectPanel(PANEL_ID)
+          layout.selectPanel(panelId)
         } catch {
-          // The panel key is not registered in this build; nothing to open.
+          // The panel key is not registered in this build; nothing to switch to.
         }
+      }
+
+      /**
+       * Open the journal page, wherever the reader clicks the reminder.
+       * @returns {void}
+       */
+      function openJournal() {
+        showPanel(PANEL_ID)
+      }
+
+      /**
+       * Return to the Conversation from the journal page's own header.
+       * @returns {void}
+       */
+      function backToConversation() {
+        showPanel(null)
       }
 
       ctx.effect(() => {
@@ -2835,6 +2918,7 @@ window.__ModuleLoader__.load({
           actions: createActions(source),
           locale,
           open: openJournal,
+          back: backToConversation,
         }
 
         const disposers = [

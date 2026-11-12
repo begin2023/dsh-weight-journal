@@ -38,6 +38,9 @@ right until the window is narrow enough for the three to meet.
   an inline confirmation instead of acting on one click.
 - **Personalise** — under Settings, a height adds BMI to the header and a goal
   weight adds the progress track.
+- **Get back** — a *返回对话 / Back to conversation* breadcrumb above the page
+  title returns to the Conversation, so leaving the page never requires finding
+  it again in the sidebar.
 
 ## What the model can do
 
