@@ -1375,7 +1375,11 @@ window.__ModuleLoader__.load({
 
 /* ---- reminder ---- */
 .wj-reminderLayer {
-  position: absolute;
+  /* Fixed rather than absolute: the slot host is free to wrap this entry in a
+     box of its own, and then left/top would be measured from that box. Fixed
+     pins the seat to the viewport, which is exactly what the stored fractions
+     are fractions of. */
+  position: fixed;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
@@ -2520,20 +2524,20 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * Keep a capsule centre inside the frame, with a small breathing margin.
+     * Keep a capsule centre inside the window, with a small breathing margin.
      * @param {{ x: number, y: number }} point - wanted centre in pixels.
-     * @param {{ width: number, height: number }} frame - the overlay's size.
+     * @param {{ width: number, height: number }} bounds - the viewport's size.
      * @param {{ width: number, height: number }} size - the capsule's size.
      * @returns {{ x: number, y: number }} the allowed centre.
      */
-    function settleSeatPoint(point, frame, size) {
+    function settleSeatPoint(point, bounds, size) {
       const margin = 4
       const halfX = size.width / 2
       const halfY = size.height / 2
       const leastX = halfX + margin
       const leastY = halfY + margin
-      const mostX = Math.max(leastX, frame.width - halfX - margin)
-      const mostY = Math.max(leastY, frame.height - halfY - margin)
+      const mostX = Math.max(leastX, bounds.width - halfX - margin)
+      const mostY = Math.max(leastY, bounds.height - halfY - margin)
       return {
         x: Math.min(Math.max(point.x, leastX), mostX),
         y: Math.min(Math.max(point.y, leastY), mostY),
@@ -2588,9 +2592,9 @@ window.__ModuleLoader__.load({
 
       const [live, setLive] = React.useState(null)
       const [dragging, setDragging] = React.useState(false)
-      const [frame, setFrame] = React.useState(null)
+      const [bounds, setBounds] = React.useState(() =>
+        typeof window === 'undefined' ? null : { width: window.innerWidth, height: window.innerHeight })
       const [size, setSize] = React.useState(null)
-      const layerRef = React.useRef(null)
       const gripRef = React.useRef(null)
       const dragRef = React.useRef(null)
       const movedRef = React.useRef(false)
@@ -2606,29 +2610,30 @@ window.__ModuleLoader__.load({
       // then jumping to a seat the reader chose earlier.
       const useLayout = typeof React.useLayoutEffect === 'function' ? React.useLayoutEffect : React.useEffect
       useLayout(() => {
-        if (!ready || layerRef.current === null) return undefined
-        const layer = layerRef.current
-        const host = layer.parentElement
+        if (!ready || typeof window === 'undefined') return undefined
         /**
-         * Record the frame and the capsule's own box.
+         * Record the window and the capsule's own box.
          * @returns {void}
          */
         const measure = () => {
-          if (host !== null) {
-            const box = host.getBoundingClientRect()
-            setFrame({ width: box.width, height: box.height })
-          }
-          if (gripRef.current !== null) {
-            const own = gripRef.current.getBoundingClientRect()
-            setSize({ width: own.width, height: own.height })
-          }
+          setBounds({ width: window.innerWidth, height: window.innerHeight })
+          if (gripRef.current === null) return
+          const own = gripRef.current.getBoundingClientRect()
+          // A capsule that has not been laid out reports zeroes; keeping the last
+          // real box beats clamping against nothing.
+          if (own.width > 0 && own.height > 0) setSize({ width: own.width, height: own.height })
         }
         measure()
-        if (typeof ResizeObserver === 'undefined') return undefined
-        const observer = new ResizeObserver(measure)
-        if (host !== null) observer.observe(host)
-        if (gripRef.current !== null) observer.observe(gripRef.current)
-        return () => observer.disconnect()
+        window.addEventListener('resize', measure)
+        let observer = null
+        if (typeof ResizeObserver !== 'undefined' && gripRef.current !== null) {
+          observer = new ResizeObserver(measure)
+          observer.observe(gripRef.current)
+        }
+        return () => {
+          window.removeEventListener('resize', measure)
+          if (observer !== null) observer.disconnect()
+        }
       }, [ready])
 
       React.useEffect(() => () => {
@@ -2662,8 +2667,8 @@ window.__ModuleLoader__.load({
 
       // Where the capsule sits. `live` is the pixel centre while the pointer
       // holds it, so the drag follows without a write per frame.
-      const settled = stored !== null && frame !== null && size !== null
-        ? settleSeatPoint({ x: stored.x * frame.width, y: stored.y * frame.height }, frame, size)
+      const settled = stored !== null && bounds !== null && size !== null
+        ? settleSeatPoint({ x: stored.x * bounds.width, y: stored.y * bounds.height }, bounds, size)
         : null
       const point = live !== null ? live : settled
 
@@ -2673,20 +2678,26 @@ window.__ModuleLoader__.load({
        */
       const currentPoint = () => {
         if (point !== null) return point
-        if (frame === null || size === null) return null
-        return { x: frame.width / 2, y: 10 + size.height / 2 }
+        if (bounds === null || size === null) return null
+        // Before the first drag the capsule still sits where the stylesheet put
+        // it; ask the DOM rather than assume, so the grab starts without a jump.
+        if (gripRef.current !== null) {
+          const own = gripRef.current.getBoundingClientRect()
+          if (own.width > 0 && own.height > 0) return { x: own.left + own.width / 2, y: own.top + own.height / 2 }
+        }
+        return { x: bounds.width / 2, y: 10 + size.height / 2 }
       }
 
       /**
-       * Write the seat back as fractions of the frame.
+       * Write the seat back as fractions of the window.
        * @param {{ x: number, y: number }} next - the centre in pixels.
        * @returns {void}
        */
       const persist = (next) => {
-        if (frame === null || frame.width <= 0 || frame.height <= 0) return
+        if (bounds === null || bounds.width <= 0 || bounds.height <= 0) return
         if (actions === null || typeof actions.saveSettings !== 'function') return
         const round = value => Math.round(value * 1000) / 1000
-        actions.saveSettings({ reminder: { x: round(next.x / frame.width), y: round(next.y / frame.height) } })
+        actions.saveSettings({ reminder: { x: round(next.x / bounds.width), y: round(next.y / bounds.height) } })
       }
 
       /**
@@ -2731,7 +2742,7 @@ window.__ModuleLoader__.load({
           setDragging(true)
         }
         const wanted = { x: state.from.x + dx, y: state.from.y + dy }
-        setLive(frame === null || size === null ? wanted : settleSeatPoint(wanted, frame, size))
+        setLive(bounds === null || size === null ? wanted : settleSeatPoint(wanted, bounds, size))
       }
 
       /**
@@ -2754,7 +2765,7 @@ window.__ModuleLoader__.load({
         }
         if (!movedRef.current) return
         const wanted = { x: state.from.x + (event.clientX - state.x), y: state.from.y + (event.clientY - state.y) }
-        const next = frame === null || size === null ? wanted : settleSeatPoint(wanted, frame, size)
+        const next = bounds === null || size === null ? wanted : settleSeatPoint(wanted, bounds, size)
         window.setTimeout(() => {
           movedRef.current = false
         }, 0)
@@ -2785,7 +2796,7 @@ window.__ModuleLoader__.load({
         event.preventDefault()
         const distance = event.shiftKey ? 24 : 8
         const wanted = { x: from.x + step[0] * distance, y: from.y + step[1] * distance }
-        const next = frame === null || size === null ? wanted : settleSeatPoint(wanted, frame, size)
+        const next = bounds === null || size === null ? wanted : settleSeatPoint(wanted, bounds, size)
         setLive(next)
         if (saveTimer.current !== 0) window.clearTimeout(saveTimer.current)
         saveTimer.current = window.setTimeout(() => {
@@ -2799,7 +2810,7 @@ window.__ModuleLoader__.load({
         : { left: `${point.x}px`, top: `${point.y}px`, transform: 'translate(-50%, -50%)' }
       const className = `wj-reminder${reading === null ? '' : ' is-recorded'}${dragging ? ' is-dragging' : ''}`
 
-      return h('div', { className: 'wj-reminderLayer', ref: layerRef, style: layerStyle },
+      return h('div', { className: 'wj-reminderLayer', style: layerStyle },
         h('button', {
           type: 'button',
           ref: gripRef,
