@@ -1,5 +1,8 @@
 # dsh-weight-journal
 
+[![npm](https://img.shields.io/npm/v/dsh-weight-journal?style=flat-square&color=4D6BFE)](https://www.npmjs.com/package/dsh-weight-journal)
+[![license](https://img.shields.io/npm/l/dsh-weight-journal?style=flat-square)](LICENSE)
+
 A daily weight journal for the DeepSeek Harness Web GUI: one page, one reading a
 day, one honest trend.
 
