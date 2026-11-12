@@ -778,7 +778,9 @@ window.__ModuleLoader__.load({
 .wj-row { display: grid; gap: 16px; margin-top: 20px; }
 .wj-row--hero { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
 .wj-row--heroEmpty { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
-.wj-row--lower { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+/* The two lower cards hold different amounts of content; letting each end
+   where its content ends beats stretching the short one into a tall void. */
+.wj-row--lower { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: start; }
 @container (max-width: 880px) {
   .wj-row--hero, .wj-row--heroEmpty, .wj-row--lower { grid-template-columns: minmax(0, 1fr); }
 }
@@ -868,6 +870,9 @@ window.__ModuleLoader__.load({
   grid-template-columns: repeat(4, minmax(0, 1fr));
   padding-top: 14px;
   border-top: 0.5px solid var(--wj-card-stroke);
+  /* The composer beside the hero card is the taller column; pin the figures to
+     the card's bottom edge so the spare height becomes a margin, not a void. */
+  margin-top: auto;
 }
 .wj-kpi { min-width: 0; padding-right: 8px; }
 .wj-kpi + .wj-kpi {
@@ -1122,6 +1127,12 @@ window.__ModuleLoader__.load({
   gap: 6px;
   height: 132px;
   margin-top: 12px;
+  /* One continuous zero line behind the columns: drawn per column it broke into
+     dashes at every gap and the bars looked like they hung from nothing. */
+  background-image: linear-gradient(var(--dsw-alias-border-l3), var(--dsw-alias-border-l3));
+  background-size: 100% 1px;
+  background-position: 0 calc(50% - 0.5px);
+  background-repeat: no-repeat;
 }
 .wj-barCol { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .wj-barHalf { display: flex; flex: 1; min-height: 0; }
@@ -1137,12 +1148,16 @@ window.__ModuleLoader__.load({
 .wj-bar--down {
   background: var(--dsw-alias-state-success-primary);
   background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 72%, transparent);
+  border-radius: 0 0 4px 4px;
 }
 .wj-bar--up {
   background: var(--dsw-alias-state-warn-primary);
   background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 68%, transparent);
+  border-radius: 4px 4px 0 0;
 }
-.wj-barAxis { height: 1px; background: var(--dsw-alias-border-l2); }
+/* The zero line carries the comparison; border-l2 vanished into the card, so
+   it takes the next step up the stroke scale. */
+.wj-barAxis { height: 1px; }
 .wj-barLabels { display: flex; gap: 6px; margin-top: 8px; }
 .wj-barLabel {
   display: flex;
