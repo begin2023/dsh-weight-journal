@@ -11,13 +11,26 @@ A scale icon sits in the left sidebar's panel row (above Settings). It opens the
 ## The reminder capsule
 
 While the app is open, a small capsule holds the centre of the conversation title
-row — the strip that stays visible on every panel — and cycles every 5.4 seconds
-through one sentence in eight languages, starting in the language the app is set
-to. Clicking it selects the journal, so the page has a second entrance.
+row — the strip that stays visible on every panel. Each language keeps it for
+three beats before the next takes over, so one pass states the day, then the
+change, then a tip:
 
-It reads the journal before painting, so it states today truthfully: the day's
-weight once recorded, with the trend mark inside turning accent and its end dot
-filling in, or "nothing yet" before that. It registers into the frame's
+1. **Today** — `今天 68.4 kg`, or `今天还没记录` before the day is saved.
+2. **Change** — `比上次轻 0.3 kg · 继续保持`, `比上次重 1.2 kg · 需要加油`, or
+   `和上次持平 · 稳住就好`. It compares with the last *recorded* reading, which is
+   why it says 比上次 rather than 比昨天: after a gap it tells the truth about the
+   gap instead of inventing the missing days.
+3. **A tip** — five per language (a lighter dinner, no overeating, less sugar, a
+   walk after eating, an earlier night), stepping to the next one each pass so
+   the same advice never repeats back to back.
+
+Eight languages in all, starting with the one the app is set to, one beat every
+5.4 seconds — a language holds 16.2 seconds and the whole cycle is 2.16 minutes.
+Clicking the capsule selects the journal, so the page has a second entrance.
+
+It reads the journal before painting, so the state it shows is the stored one:
+once the day is saved the trend mark turns accent and its end dot fills in, and
+before that the mark keeps a slow waiting pulse. It registers into the frame's
 `shell.overlay` seat, a whole-app layer that is click-through by default; the
 capsule opts back into pointer events for its own 30-pixel row only. Being
 centred, it stays clear of the session title on the left and the utilities on the

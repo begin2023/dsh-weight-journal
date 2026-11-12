@@ -1346,7 +1346,8 @@ window.__ModuleLoader__.load({
   align-items: center;
   gap: 7px;
   width: max-content;
-  max-width: 240px;
+  /* The longest shipped line measures ~235px; the cap is headroom, not a target. */
+  max-width: 264px;
   height: 30px;
   padding: 0 9px 0 10px;
   border: 1px solid var(--dsw-alias-border-l2);
@@ -2235,15 +2236,110 @@ window.__ModuleLoader__.load({
      * the capsule is a fixed width and a long string would be clipped.
      */
     const REMINDER_VOICES = [
-      { lang: 'zh', tag: 'zh-CN', open: '打开体重手账', empty: '今天还没记录', today: (weight) => `今天 ${weight} kg` },
-      { lang: 'en', tag: 'en-US', open: 'Open the weight journal', empty: 'Nothing yet today', today: (weight) => `${weight} kg today` },
-      { lang: 'ja', tag: 'ja-JP', open: '体重手帳を開く', empty: '今日はまだ未記録', today: (weight) => `今日 ${weight} kg` },
-      { lang: 'fr', tag: 'fr-FR', open: 'Ouvrir le journal de poids', empty: 'Rien aujourd’hui', today: (weight) => `${weight} kg aujourd’hui` },
-      { lang: 'es', tag: 'es-ES', open: 'Abrir el diario de peso', empty: 'Nada aún hoy', today: (weight) => `${weight} kg hoy` },
-      { lang: 'de', tag: 'de-DE', open: 'Gewichtstagebuch öffnen', empty: 'Heute noch nichts', today: (weight) => `${weight} kg heute` },
-      { lang: 'ru', tag: 'ru-RU', open: 'Открыть дневник веса', empty: 'Нет записи', today: (weight) => `${weight} kg сегодня` },
-      { lang: 'pt', tag: 'pt-PT', open: 'Abrir o diário de peso', empty: 'Nada ainda hoje', today: (weight) => `${weight} kg hoje` },
+      {
+        lang: 'zh',
+        tag: 'zh-CN',
+        open: '打开体重手账',
+        empty: '今天还没记录',
+        today: (w) => `今天 ${w} kg`,
+        first: '第一条记录，开始了',
+        lighter: (d) => `比上次轻 ${d} kg · 继续保持`,
+        heavier: (d) => `比上次重 ${d} kg · 需要加油`,
+        steady: '和上次持平 · 稳住就好',
+        hints: ['晚饭清淡一点', '别暴饮暴食', '少喝含糖饮料', '饭后走一走', '早点睡，别熬夜'],
+      },
+      {
+        lang: 'en',
+        tag: 'en-US',
+        open: 'Open the weight journal',
+        empty: 'Nothing yet today',
+        today: (w) => `${w} kg today`,
+        first: 'First reading, good start',
+        lighter: (d) => `Down ${d} kg · keep it up`,
+        heavier: (d) => `Up ${d} kg · keep going`,
+        steady: 'Holding steady · stay with it',
+        hints: ['Keep dinner light', 'No overeating', 'Skip sugary drinks', 'A short walk after', 'Sleep a little earlier'],
+      },
+      {
+        lang: 'ja',
+        tag: 'ja-JP',
+        open: '体重手帳を開く',
+        empty: '今日はまだ未記録',
+        today: (w) => `今日 ${w} kg`,
+        first: '最初の記録、いい出発',
+        lighter: (d) => `前回より ${d} kg 減 · その調子`,
+        heavier: (d) => `前回より ${d} kg 増 · もう一息`,
+        steady: '前回と同じ · このまま',
+        hints: ['夕食はあっさりと', '食べ過ぎに注意', '甘い飲み物を控えめに', '食後に少し歩く', '早めに休む'],
+      },
+      {
+        lang: 'fr',
+        tag: 'fr-FR',
+        open: 'Ouvrir le journal de poids',
+        empty: 'Rien aujourd’hui',
+        today: (w) => `${w} kg aujourd’hui`,
+        first: 'Première mesure, ça démarre',
+        lighter: (d) => `${d} kg de moins · continuez`,
+        heavier: (d) => `${d} kg de plus · courage`,
+        steady: 'Stable · tenez bon',
+        hints: ['Dîner léger ce soir', 'Évitez l’excès', 'Moins de sucres', 'Marchez un peu', 'Couchez-vous plus tôt'],
+      },
+      {
+        lang: 'es',
+        tag: 'es-ES',
+        open: 'Abrir el diario de peso',
+        empty: 'Nada aún hoy',
+        today: (w) => `${w} kg hoy`,
+        first: 'Primera lectura, buen inicio',
+        lighter: (d) => `${d} kg menos · sigue así`,
+        heavier: (d) => `${d} kg más · ánimo`,
+        steady: 'Sin cambios · mantén',
+        hints: ['Cena ligera', 'Sin excesos', 'Menos azúcar', 'Camina un poco', 'Duerme temprano'],
+      },
+      {
+        lang: 'de',
+        tag: 'de-DE',
+        open: 'Gewichtstagebuch öffnen',
+        empty: 'Heute noch nichts',
+        today: (w) => `Heute ${w} kg`,
+        first: 'Erste Messung, guter Start',
+        lighter: (d) => `${d} kg weniger · weiter so`,
+        heavier: (d) => `${d} kg mehr · dranbleiben`,
+        steady: 'Unverändert · bleib dabei',
+        hints: ['Abends leicht essen', 'Nicht überessen', 'Weniger Zucker', 'Kurz spazieren', 'Früher schlafen'],
+      },
+      {
+        lang: 'ru',
+        tag: 'ru-RU',
+        open: 'Открыть дневник веса',
+        empty: 'Нет записи',
+        today: (w) => `Сегодня ${w} кг`,
+        first: 'Первая запись, начало',
+        lighter: (d) => `Минус ${d} кг · так держать`,
+        heavier: (d) => `Плюс ${d} кг · не сдавайся`,
+        steady: 'Без изменений · держись',
+        hints: ['Ужин полегче', 'Без переедания', 'Меньше сахара', 'Пройдись после еды', 'Ложись пораньше'],
+      },
+      {
+        lang: 'pt',
+        tag: 'pt-PT',
+        open: 'Abrir o diário de peso',
+        empty: 'Nada ainda hoje',
+        today: (w) => `${w} kg hoje`,
+        first: 'Primeira leitura, bom começo',
+        lighter: (d) => `Menos ${d} kg · continue`,
+        heavier: (d) => `Mais ${d} kg · força`,
+        steady: 'Estável · mantenha',
+        hints: ['Jantar leve', 'Sem exageros', 'Menos açúcar', 'Ande um pouco', 'Deite-se cedo'],
+      },
     ]
+
+    /**
+     * One beat's register. The capsule walks the languages one at a time and
+     * gives each its three beats in this order, so within a language it states
+     * the day, then the change, then a tip, before moving on.
+     */
+    const REMINDER_KINDS = ['today', 'delta', 'hint']
 
     /** One formatter per beat language, built once and reused. */
     const weightFormatters = new Map()
@@ -2270,6 +2366,36 @@ window.__ModuleLoader__.load({
       } catch {
         return kg(value)
       }
+    }
+
+    /**
+     * The line one beat says: the day's state, the change since the previous
+     * reading, or a tip — in the beat's own language.
+     * @param {object} voice - the beat's language pack.
+     * @param {string} kind - one of REMINDER_KINDS.
+     * @param {number} block - how many language turns the cycle has taken.
+     * @param {{ weight: number } | null} reading - today's reading, if any.
+     * @param {{ weight: number } | null} previous - the reading before today's.
+     * @returns {string} the line to show.
+     */
+    function reminderLine(voice, kind, block, reading, previous) {
+      const amount = value => spokenWeight(voice.tag, value)
+      // Each language walks its own list of tips in order, one per pass, so a
+      // tip never repeats until the list is spent (a pass is every language
+      // holding the capsule once).
+      if (kind === 'hint') {
+        const pass = Math.floor(block / REMINDER_VOICES.length)
+        return voice.hints[pass % voice.hints.length]
+      }
+      // An unrecorded day is nudged the same way whichever fact beat comes up.
+      if (reading === null) return voice.empty
+      if (kind === 'today') return voice.today(amount(reading.weight))
+      if (previous === null) return voice.first
+      // Readings are stored to one decimal, so the difference is snapped back
+      // to that grid before it is classified as up, down or level.
+      const change = Math.round((reading.weight - previous.weight) * 10) / 10
+      if (change === 0) return voice.steady
+      return change < 0 ? voice.lighter(amount(-change)) : voice.heavier(amount(change))
     }
 
     /**
@@ -2327,17 +2453,19 @@ window.__ModuleLoader__.load({
         if (actions && typeof actions.reload === 'function') actions.reload()
       }, [actions])
 
-      // The cycle opens in the reader's own language and then walks on.
+      // The cycle opens on the reader's own language and then walks on; each
+      // language holds the capsule for REMINDER_KINDS.length beats in a row.
       const [beat, setBeat] = React.useState(() => {
         const primary = String(localeTag(props.locale)).toLowerCase().split(/[-_]/)[0]
         const found = REMINDER_VOICES.findIndex(voice => voice.lang === primary)
-        return found < 0 ? 0 : found
+        return (found < 0 ? 0 : found) * REMINDER_KINDS.length
       })
 
       React.useEffect(() => {
         if (typeof window === 'undefined') return undefined
+        const cycle = REMINDER_VOICES.length * REMINDER_KINDS.length
         const timer = window.setInterval(() => {
-          setBeat(current => (current + 1) % REMINDER_VOICES.length)
+          setBeat(current => (current + 1) % cycle)
         }, REMINDER_BEAT_MS)
         return () => window.clearInterval(timer)
       }, [])
@@ -2346,18 +2474,25 @@ window.__ModuleLoader__.load({
       // reminder is concerned; the page owns explaining the failure.
       const entries = snapshot === null || snapshot.status === 'error' ? [] : snapshot.entries
       const today = todayKey()
-      let reading = null
+      let at = -1
       for (let index = entries.length - 1; index >= 0; index -= 1) {
         if (entries[index].date === today) {
-          reading = entries[index]
+          at = index
           break
         }
       }
+      const reading = at < 0 ? null : entries[at]
+      const previous = at <= 0 ? null : entries[at - 1]
 
-      const voice = REMINDER_VOICES[beat % REMINDER_VOICES.length]
-      const text = reading === null
-        ? voice.empty
-        : voice.today(spokenWeight(voice.tag, reading.weight))
+      // Until the first read lands there is nothing true to say, and "nothing
+      // yet today" would be a claim. The capsule holds its breath for those
+      // frames — the read is local, so it is a few milliseconds.
+      if (snapshot === null || snapshot.status === 'loading') return null
+
+      const block = Math.floor(beat / REMINDER_KINDS.length)
+      const kind = REMINDER_KINDS[beat % REMINDER_KINDS.length]
+      const voice = REMINDER_VOICES[block % REMINDER_VOICES.length]
+      const text = reminderLine(voice, kind, block, reading, previous)
       // The layer's projection supplies hooks, not a translator, so the tooltip
       // rides along with the language of the beat instead.
       const action = voice.open
@@ -2376,7 +2511,7 @@ window.__ModuleLoader__.load({
         h('span', { className: 'wj-reminderGlyph', 'aria-hidden': 'true' }, h(TrendMark, { recorded: reading !== null })),
         h('span', { className: 'wj-reminderText' },
           h('span', {
-            key: `${voice.lang}:${reading === null ? 'empty' : reading.weight}`,
+            key: `${voice.lang}:${kind}:${text}`,
             className: 'wj-reminderLine',
           }, text)),
         h('span', { className: 'wj-reminderGo', 'aria-hidden': 'true' },
