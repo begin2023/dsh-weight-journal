@@ -25,9 +25,9 @@ A scale icon sits in the left sidebar's panel row (above Settings). It opens the
 ## The reminder capsule
 
 While the app is open, a small capsule holds the centre of the conversation title
-row — the strip that stays visible on every panel. Each language keeps it for
-three beats before the next takes over, so one pass states the day, then the
-change, then a tip:
+row — the strip that stays visible on every panel — until you drag it somewhere
+better. Each language keeps it for three beats before the next takes over, so one
+pass states the day, then the change, then a tip:
 
 1. **Today** — `今天 68.4 kg`, or `今天还没记录` before the day is saved.
 2. **Change** — `比上次轻 0.3 kg · 继续保持`, `比上次重 1.2 kg · 需要加油`, or
@@ -42,6 +42,16 @@ change, then a tip:
 Eight languages in all, starting with the one the app is set to, one beat every
 5.4 seconds — a language holds 16.2 seconds and the whole cycle is 2.16 minutes.
 Clicking the capsule selects the journal, so the page has a second entrance.
+
+### Moving it
+
+Some themes draw their own controls in that strip, and a capsule on top of one is
+worse than no capsule at all. Drag it wherever it is out of the way: the seat is
+stored as a fraction of the window, so it survives a resize and a restart, and
+**Back to the middle** in the settings dialog brings it home. Arrow keys move it
+eight pixels at a time, twenty-four with Shift, for anyone working without a
+mouse — and a drag never opens the page by accident, because a press only becomes
+a drag after three pixels and the click that follows is swallowed.
 
 It reads the journal before painting, so the state it shows is the stored one:
 once the day is saved the trend mark turns accent and its end dot fills in, and

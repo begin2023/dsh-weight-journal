@@ -100,6 +100,10 @@ window.__ModuleLoader__.load({
       'settings.height': '身高（cm）',
       'settings.goal': '目标体重（kg）',
       'settings.hint': '留空则不显示 BMI 与目标进度。',
+      'settings.seat': '提醒胶囊',
+      'settings.seatHint': '拖动标题行中间的胶囊即可挪开它。',
+      'settings.seatReset': '回到中间',
+      'settings.seatDone': '胶囊回到中间了',
       'settings.save': '保存',
       'settings.cancel': '取消',
       'settings.failed': '保存失败：{message}',
@@ -170,6 +174,10 @@ window.__ModuleLoader__.load({
       'settings.height': 'Height (cm)',
       'settings.goal': 'Goal weight (kg)',
       'settings.hint': 'Leave a field empty to hide BMI or the goal progress.',
+      'settings.seat': 'Reminder capsule',
+      'settings.seatHint': 'Drag the capsule to move it out of the way.',
+      'settings.seatReset': 'Back to the middle',
+      'settings.seatDone': 'The capsule is back in the middle',
       'settings.save': 'Save',
       'settings.cancel': 'Cancel',
       'settings.failed': 'Could not save: {message}',
@@ -519,7 +527,7 @@ window.__ModuleLoader__.load({
      * @returns {{ getSnapshot: () => object, subscribe: (listener: () => void) => () => void, publish: (next: object) => void }} the source.
      */
     function createSource() {
-      const initial = { status: 'loading', entries: [], settings: { heightCm: null, goalWeight: null }, error: null }
+      const initial = { status: 'loading', entries: [], settings: { heightCm: null, goalWeight: null, reminder: null }, error: null }
       let snapshot = initial
       const listeners = new Set()
       return {
@@ -567,8 +575,14 @@ window.__ModuleLoader__.load({
      * @returns {{ reload: () => Promise<void>, save: (input: object) => Promise<object>, remove: (date: string) => Promise<object>, saveSettings: (patch: object) => Promise<object> }} the actions.
      */
     function createActions(source) {
+      // The capsule's seat rides in `settings`, which an older Host build drops
+      // from its reply. Holding the last seat it was given keeps the capsule
+      // where the reader put it until the app is restarted onto this build.
+      let seat = null
       const commit = (state) => {
-        source.publish({ status: 'ready', entries: state.entries, settings: state.settings, error: null })
+        const settings = state.settings !== null && typeof state.settings === 'object' ? state.settings : {}
+        const reminder = settings.reminder === undefined ? seat : settings.reminder
+        source.publish({ status: 'ready', entries: state.entries, settings: { ...settings, reminder }, error: null })
       }
       // The reminder and the page mount together at startup; one read serves both.
       let pending = null
@@ -612,7 +626,9 @@ window.__ModuleLoader__.load({
         },
         async saveSettings(patch) {
           try {
-            commit(await callHost('write', { action: 'settings', ...patch }))
+            const state = await callHost('write', { action: 'settings', ...patch })
+            if ('reminder' in patch) seat = patch.reminder === null ? null : patch.reminder
+            commit(state)
             return { ok: true }
           } catch (error) {
             return { ok: false, message: error instanceof Error ? error.message : String(error) }
@@ -1342,6 +1358,19 @@ window.__ModuleLoader__.load({
 .wj-dialogBody { display: flex; flex-direction: column; gap: 14px; }
 .wj-dialogFoot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .wj-dialogFoot .wj-feedback { flex: 1; margin: 0; }
+.wj-seatRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+.wj-seatText { display: flex; flex: 1 1 auto; flex-direction: column; gap: 3px; min-width: 0; }
+.wj-seatText .wj-hint { line-height: 16px; }
+.wj-seatRow .wj-btn { flex: none; }
+.wj-seatRow .wj-btn[disabled] { opacity: 0.45; cursor: default; }
 @keyframes wj-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---- reminder ---- */
@@ -1374,12 +1403,25 @@ window.__ModuleLoader__.load({
   line-height: 1;
   font-weight: 500;
   letter-spacing: 0.005em;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   pointer-events: auto;
   -webkit-app-region: no-drag;
   animation: wj-rise 540ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease,
+    box-shadow 160ms ease;
 }
+/* Held: the capsule lifts off the strip and stops trying to be a link. */
+.wj-reminder.is-dragging {
+  cursor: grabbing;
+  border-color: var(--dsw-alias-border-l3);
+  background: var(--dsw-alias-bg-layer-3);
+  box-shadow: var(--dsw-elevation-prominent, 0 8px 20px var(--dsw-alias-bg-mask-2));
+  animation: none;
+}
+.wj-reminder.is-dragging .wj-reminderGo { opacity: 0; }
 .wj-reminderGlyph {
   display: inline-flex;
   flex: none;
@@ -2138,7 +2180,7 @@ window.__ModuleLoader__.load({
      * @param {object} props - current settings and dialog callbacks.
      * @returns {import('react').ReactElement} the dialog.
      */
-    function SettingsDialog({ settings, t, saving, feedback, onClose, onSubmit }) {
+    function SettingsDialog({ settings, t, saving, feedback, onClose, onSubmit, onResetSeat }) {
       const [height, setHeight] = React.useState(settings.heightCm === null ? '' : String(settings.heightCm))
       const [goal, setGoal] = React.useState(settings.goalWeight === null ? '' : kg(settings.goalWeight))
       const first = React.useRef(null)
@@ -2225,7 +2267,17 @@ window.__ModuleLoader__.load({
             onChange: (event) => setGoal(event.target.value),
             placeholder: '68.0',
           })),
-        h('p', { className: 'wj-hint', style: { margin: 0 } }, t('settings.hint'))),
+        h('p', { className: 'wj-hint', style: { margin: 0 } }, t('settings.hint')),
+        h('div', { className: 'wj-seatRow' },
+          h('div', { className: 'wj-seatText' },
+            h('span', { className: 'wj-label' }, t('settings.seat')),
+            h('span', { className: 'wj-hint' }, t('settings.seatHint'))),
+          h('button', {
+            type: 'button',
+            className: 'wj-btn wj-btn--quiet',
+            disabled: saving || settings === null || settings === undefined || settings.reminder === null || settings.reminder === undefined,
+            onClick: () => onResetSeat(),
+          }, t('settings.seatReset')))),
       h('div', { className: 'wj-dialogFoot' },
         h('span', {
           className: `wj-feedback${feedback === null ? '' : feedback.ok ? ' wj-feedback--ok' : ' wj-feedback--error'}`,
@@ -2255,6 +2307,7 @@ window.__ModuleLoader__.load({
         lang: 'zh',
         tag: 'zh-CN',
         open: '打开体重手账',
+        drag: '拖动可移动',
         empty: '今天还没记录',
         today: (w) => `今天 ${w} kg`,
         first: '第一条记录，开始了',
@@ -2267,6 +2320,7 @@ window.__ModuleLoader__.load({
         lang: 'en',
         tag: 'en-US',
         open: 'Open the weight journal',
+        drag: 'Drag to move',
         empty: 'Nothing yet today',
         today: (w) => `${w} kg today`,
         first: 'First reading, good start',
@@ -2279,6 +2333,7 @@ window.__ModuleLoader__.load({
         lang: 'ja',
         tag: 'ja-JP',
         open: '体重手帳を開く',
+        drag: 'ドラッグで移動',
         empty: '今日はまだ未記録',
         today: (w) => `今日 ${w} kg`,
         first: '最初の記録、いい出発',
@@ -2291,6 +2346,7 @@ window.__ModuleLoader__.load({
         lang: 'fr',
         tag: 'fr-FR',
         open: 'Ouvrir le journal de poids',
+        drag: 'Glisser pour déplacer',
         empty: 'Rien aujourd’hui',
         today: (w) => `${w} kg aujourd’hui`,
         first: 'Première mesure, ça démarre',
@@ -2303,6 +2359,7 @@ window.__ModuleLoader__.load({
         lang: 'es',
         tag: 'es-ES',
         open: 'Abrir el diario de peso',
+        drag: 'Arrastra para mover',
         empty: 'Nada aún hoy',
         today: (w) => `${w} kg hoy`,
         first: 'Primera lectura, buen inicio',
@@ -2315,6 +2372,7 @@ window.__ModuleLoader__.load({
         lang: 'de',
         tag: 'de-DE',
         open: 'Gewichtstagebuch öffnen',
+        drag: 'Ziehen zum Verschieben',
         empty: 'Heute noch nichts',
         today: (w) => `Heute ${w} kg`,
         first: 'Erste Messung, guter Start',
@@ -2327,6 +2385,7 @@ window.__ModuleLoader__.load({
         lang: 'ru',
         tag: 'ru-RU',
         open: 'Открыть дневник веса',
+        drag: 'Перетащите, чтобы сдвинуть',
         empty: 'Нет записи',
         today: (w) => `Сегодня ${w} кг`,
         first: 'Первая запись, начало',
@@ -2339,6 +2398,7 @@ window.__ModuleLoader__.load({
         lang: 'pt',
         tag: 'pt-PT',
         open: 'Abrir o diário de peso',
+        drag: 'Arraste para mover',
         empty: 'Nada ainda hoje',
         today: (w) => `${w} kg hoje`,
         first: 'Primeira leitura, bom começo',
@@ -2447,10 +2507,45 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * Read one stored seat, ignoring anything that is not a pair of fractions.
+     * @param {unknown} value - candidate from the store.
+     * @returns {{ x: number, y: number } | null} the seat, or null for the default.
+     */
+    function reminderSeat(value) {
+      if (value === null || typeof value !== 'object') return null
+      const x = Number(value.x)
+      const y = Number(value.y)
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+      return { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) }
+    }
+
+    /**
+     * Keep a capsule centre inside the frame, with a small breathing margin.
+     * @param {{ x: number, y: number }} point - wanted centre in pixels.
+     * @param {{ width: number, height: number }} frame - the overlay's size.
+     * @param {{ width: number, height: number }} size - the capsule's size.
+     * @returns {{ x: number, y: number }} the allowed centre.
+     */
+    function settleSeatPoint(point, frame, size) {
+      const margin = 4
+      const halfX = size.width / 2
+      const halfY = size.height / 2
+      const leastX = halfX + margin
+      const leastY = halfY + margin
+      const mostX = Math.max(leastX, frame.width - halfX - margin)
+      const mostY = Math.max(leastY, frame.height - halfY - margin)
+      return {
+        x: Math.min(Math.max(point.x, leastX), mostX),
+        y: Math.min(Math.max(point.y, leastY), mostY),
+      }
+    }
+
+    /**
      * The frame-wide reminder: a 30px capsule at the top of the window that
      * speaks today's state in one of several languages, changing on a timer.
-     * Clicking it opens the journal page; it is the only always-visible entry
-     * point to the journal besides the sidebar row.
+     * Clicking it opens the journal page. It can be dragged: another theme may
+     * put something under the middle of the title row, and the seat is kept as a
+     * fraction of the frame so a resize does not send it back to the middle.
      * @param {object} props - slot runtime props plus the injected journal face.
      * @returns {import('react').ReactElement} the capsule.
      */
@@ -2485,6 +2580,62 @@ window.__ModuleLoader__.load({
         return () => window.clearInterval(timer)
       }, [])
 
+      const ready = snapshot !== null && snapshot.status !== 'loading'
+      const stored = ready && snapshot.settings !== null && typeof snapshot.settings === 'object'
+        ? reminderSeat(snapshot.settings.reminder)
+        : null
+      const seatKey = stored === null ? '' : `${stored.x}:${stored.y}`
+
+      const [live, setLive] = React.useState(null)
+      const [dragging, setDragging] = React.useState(false)
+      const [frame, setFrame] = React.useState(null)
+      const [size, setSize] = React.useState(null)
+      const layerRef = React.useRef(null)
+      const gripRef = React.useRef(null)
+      const dragRef = React.useRef(null)
+      const movedRef = React.useRef(false)
+      const saveTimer = React.useRef(0)
+
+      // Once the store holds the seat, the pixel override has done its job. This
+      // is also what brings the capsule home when the seat is cleared.
+      React.useEffect(() => {
+        setLive(null)
+      }, [seatKey])
+
+      // Measuring in a layout effect keeps the capsule from painting centred and
+      // then jumping to a seat the reader chose earlier.
+      const useLayout = typeof React.useLayoutEffect === 'function' ? React.useLayoutEffect : React.useEffect
+      useLayout(() => {
+        if (!ready || layerRef.current === null) return undefined
+        const layer = layerRef.current
+        const host = layer.parentElement
+        /**
+         * Record the frame and the capsule's own box.
+         * @returns {void}
+         */
+        const measure = () => {
+          if (host !== null) {
+            const box = host.getBoundingClientRect()
+            setFrame({ width: box.width, height: box.height })
+          }
+          if (gripRef.current !== null) {
+            const own = gripRef.current.getBoundingClientRect()
+            setSize({ width: own.width, height: own.height })
+          }
+        }
+        measure()
+        if (typeof ResizeObserver === 'undefined') return undefined
+        const observer = new ResizeObserver(measure)
+        if (host !== null) observer.observe(host)
+        if (gripRef.current !== null) observer.observe(gripRef.current)
+        return () => observer.disconnect()
+      }, [ready])
+
+      React.useEffect(() => () => {
+        if (typeof window === 'undefined') return
+        if (saveTimer.current !== 0) window.clearTimeout(saveTimer.current)
+      }, [])
+
       // An unreadable journal still leaves the day unrecorded as far as the
       // reminder is concerned; the page owns explaining the failure.
       const entries = snapshot === null || snapshot.status === 'error' ? [] : snapshot.entries
@@ -2508,20 +2659,163 @@ window.__ModuleLoader__.load({
       const kind = REMINDER_KINDS[beat % REMINDER_KINDS.length]
       const voice = REMINDER_VOICES[block % REMINDER_VOICES.length]
       const text = reminderLine(voice, kind, block, reading, previous)
-      // The layer's projection supplies hooks, not a translator, so the tooltip
-      // rides along with the language of the beat instead.
-      const action = voice.open
 
-      return h('div', { className: 'wj-reminderLayer' },
+      // Where the capsule sits. `live` is the pixel centre while the pointer
+      // holds it, so the drag follows without a write per frame.
+      const settled = stored !== null && frame !== null && size !== null
+        ? settleSeatPoint({ x: stored.x * frame.width, y: stored.y * frame.height }, frame, size)
+        : null
+      const point = live !== null ? live : settled
+
+      /**
+       * The centre the capsule occupies right now, defaulted to the built-in seat.
+       * @returns {{ x: number, y: number } | null} the centre, or null before measuring.
+       */
+      const currentPoint = () => {
+        if (point !== null) return point
+        if (frame === null || size === null) return null
+        return { x: frame.width / 2, y: 10 + size.height / 2 }
+      }
+
+      /**
+       * Write the seat back as fractions of the frame.
+       * @param {{ x: number, y: number }} next - the centre in pixels.
+       * @returns {void}
+       */
+      const persist = (next) => {
+        if (frame === null || frame.width <= 0 || frame.height <= 0) return
+        if (actions === null || typeof actions.saveSettings !== 'function') return
+        const round = value => Math.round(value * 1000) / 1000
+        actions.saveSettings({ reminder: { x: round(next.x / frame.width), y: round(next.y / frame.height) } })
+      }
+
+      /**
+       * Start a drag, remembering where the pointer and the capsule began.
+       * @param {PointerEvent} event - the press.
+       * @returns {void}
+       */
+      const grab = (event) => {
+        if (event.button !== undefined && event.button !== 0) return
+        const from = currentPoint()
+        if (from === null) return
+        if (saveTimer.current !== 0) {
+          window.clearTimeout(saveTimer.current)
+          saveTimer.current = 0
+        }
+        const grip = event.currentTarget
+        if (typeof grip.setPointerCapture === 'function' && typeof event.pointerId === 'number') {
+          try {
+            grip.setPointerCapture(event.pointerId)
+          } catch {
+            // The pointer is already gone; the click will simply open the page.
+          }
+        }
+        movedRef.current = false
+        dragRef.current = { id: event.pointerId, x: event.clientX, y: event.clientY, from }
+      }
+
+      /**
+       * Follow the pointer once it has travelled past the click threshold.
+       * @param {PointerEvent} event - the move.
+       * @returns {void}
+       */
+      const carry = (event) => {
+        const state = dragRef.current
+        if (state === null) return
+        if (typeof state.id === 'number' && typeof event.pointerId === 'number' && state.id !== event.pointerId) return
+        const dx = event.clientX - state.x
+        const dy = event.clientY - state.y
+        if (!movedRef.current && Math.hypot(dx, dy) < 3) return
+        if (!movedRef.current) {
+          movedRef.current = true
+          setDragging(true)
+        }
+        const wanted = { x: state.from.x + dx, y: state.from.y + dy }
+        setLive(frame === null || size === null ? wanted : settleSeatPoint(wanted, frame, size))
+      }
+
+      /**
+       * Finish a drag: keep the seat, and swallow the click that follows it.
+       * @param {PointerEvent} event - the release.
+       * @returns {void}
+       */
+      const release = (event) => {
+        const state = dragRef.current
+        if (state === null) return
+        dragRef.current = null
+        setDragging(false)
+        const grip = event.currentTarget
+        if (typeof grip.releasePointerCapture === 'function' && typeof state.id === 'number') {
+          try {
+            grip.releasePointerCapture(state.id)
+          } catch {
+            // Already released by the browser.
+          }
+        }
+        if (!movedRef.current) return
+        const wanted = { x: state.from.x + (event.clientX - state.x), y: state.from.y + (event.clientY - state.y) }
+        const next = frame === null || size === null ? wanted : settleSeatPoint(wanted, frame, size)
+        window.setTimeout(() => {
+          movedRef.current = false
+        }, 0)
+        persist(next)
+      }
+
+      /**
+       * Abandon a drag the browser cancelled.
+       * @returns {void}
+       */
+      const cancel = () => {
+        dragRef.current = null
+        setDragging(false)
+        setLive(null)
+      }
+
+      /**
+       * Move the capsule with the arrow keys, saving once the keys go quiet.
+       * @param {KeyboardEvent} event - the key press.
+       * @returns {void}
+       */
+      const nudge = (event) => {
+        const steps = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }
+        const step = steps[event.key]
+        if (step === undefined) return
+        const from = currentPoint()
+        if (from === null) return
+        event.preventDefault()
+        const distance = event.shiftKey ? 24 : 8
+        const wanted = { x: from.x + step[0] * distance, y: from.y + step[1] * distance }
+        const next = frame === null || size === null ? wanted : settleSeatPoint(wanted, frame, size)
+        setLive(next)
+        if (saveTimer.current !== 0) window.clearTimeout(saveTimer.current)
+        saveTimer.current = window.setTimeout(() => {
+          saveTimer.current = 0
+          persist(next)
+        }, 500)
+      }
+
+      const layerStyle = point === null
+        ? undefined
+        : { left: `${point.x}px`, top: `${point.y}px`, transform: 'translate(-50%, -50%)' }
+      const className = `wj-reminder${reading === null ? '' : ' is-recorded'}${dragging ? ' is-dragging' : ''}`
+
+      return h('div', { className: 'wj-reminderLayer', ref: layerRef, style: layerStyle },
         h('button', {
           type: 'button',
-          className: reading === null ? 'wj-reminder' : 'wj-reminder is-recorded',
+          ref: gripRef,
+          className,
           lang: voice.tag,
-          title: `${text} · ${action}`,
-          'aria-label': `${text}. ${action}`,
+          title: `${text} · ${voice.open} · ${voice.drag}`,
+          'aria-label': `${text}. ${voice.open}`,
           onClick: () => {
+            if (movedRef.current) return
             if (typeof props.open === 'function') props.open()
           },
+          onPointerDown: grab,
+          onPointerMove: carry,
+          onPointerUp: release,
+          onPointerCancel: cancel,
+          onKeyDown: nudge,
         },
         h('span', { className: 'wj-reminderGlyph', 'aria-hidden': 'true' }, h(TrendMark, { recorded: reading !== null })),
         h('span', { className: 'wj-reminderText' },
@@ -2556,7 +2850,7 @@ window.__ModuleLoader__.load({
       const fmt = React.useMemo(() => calendarFormatters(tag), [tag])
       const useJournal = typeof props.useJournal === 'function'
         ? props.useJournal
-        : () => ({ status: 'loading', entries: [], settings: { heightCm: null, goalWeight: null }, error: null })
+        : () => ({ status: 'loading', entries: [], settings: { heightCm: null, goalWeight: null, reminder: null }, error: null })
       const snapshot = useJournal(value => value)
       const actions = props.actions
       const entries = snapshot.entries
@@ -2716,6 +3010,17 @@ window.__ModuleLoader__.load({
         } else {
           setSettingsFeedback({ ok: false, text: t('settings.failed', { message: outcome.message }) })
         }
+      }
+
+      // Clearing the seat stands on its own: the fields typed in the dialog are
+      // left alone, so a reader can move the capsule without losing an edit.
+      const resetSeat = async () => {
+        setSettingsSaving(true)
+        const outcome = await actions.saveSettings({ reminder: null })
+        setSettingsSaving(false)
+        setSettingsFeedback(outcome.ok
+          ? { ok: true, text: t('settings.seatDone') }
+          : { ok: false, text: t('settings.failed', { message: outcome.message }) })
       }
 
       const hero = h('section', { className: 'wj-card wj-hero' },
@@ -2977,6 +3282,7 @@ window.__ModuleLoader__.load({
               setSettingsFeedback(null)
             },
             onSubmit: saveSettings,
+            onResetSeat: resetSeat,
           })
           : null)
     }

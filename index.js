@@ -42,10 +42,10 @@ const MAX_HEIGHT = 260
 
 /**
  * The value a fresh journal reports before anything is recorded.
- * @returns {{ entries: never[], settings: { heightCm: null, goalWeight: null } }} a fresh empty state.
+ * @returns {{ entries: never[], settings: { heightCm: null, goalWeight: null, reminder: null } }} a fresh empty state.
  */
 function emptyState() {
-  return { entries: [], settings: { heightCm: null, goalWeight: null } }
+  return { entries: [], settings: { heightCm: null, goalWeight: null, reminder: null } }
 }
 
 /** A rejection the route reports as a structured failure instead of a 500. */
@@ -157,6 +157,24 @@ function normalizeGoal(value) {
 }
 
 /**
+ * Validate the reminder capsule's saved seat, held as the fraction of the frame
+ * its centre sits at. Keeping it a fraction rather than pixels means the capsule
+ * stays where the reader put it when the window is resized; `null` is the
+ * centred default the capsule ships with.
+ * @param {unknown} value - `{ x, y }` fractions, or null to put it back.
+ * @returns {{ x: number, y: number } | null} the accepted seat.
+ */
+function normalizeReminder(value) {
+  if (value === null || value === undefined) return null
+  if (typeof value !== 'object') return null
+  const x = Number(value.x)
+  const y = Number(value.y)
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+  const clamp = fraction => Math.min(1, Math.max(0, Math.round(fraction * 1000) / 1000))
+  return { x: clamp(x), y: clamp(y) }
+}
+
+/**
  * Coerce a stored document into the shape this build reads, discarding rows a
  * partial write or an older hand-edited file could not have produced.
  * @param {unknown} raw - parsed document.
@@ -192,7 +210,9 @@ function readStateFrom(raw) {
   } catch {
     goalWeight = null
   }
-  return { entries, settings: { heightCm, goalWeight } }
+  // An unreadable seat is not a failure: the capsule simply goes back to centre.
+  const reminder = normalizeReminder(settings.reminder)
+  return { entries, settings: { heightCm, goalWeight, reminder } }
 }
 
 /**
@@ -288,15 +308,16 @@ function createJournal() {
   })
 
   /**
-   * Store the reader's height and goal.
-   * @param {{ heightCm?: unknown, goalWeight?: unknown }} input - caller arguments.
+   * Store the reader's height, goal and reminder seat.
+   * @param {{ heightCm?: unknown, goalWeight?: unknown, reminder?: unknown }} input - caller arguments.
    * @returns {Promise<object>} the state after the write.
    */
   const saveSettings = input => exclusive(async () => {
     const state = await readState()
     const heightCm = 'heightCm' in input ? normalizeHeight(input.heightCm) : state.settings.heightCm
     const goalWeight = 'goalWeight' in input ? normalizeGoal(input.goalWeight) : state.settings.goalWeight
-    const next = { entries: state.entries, settings: { heightCm, goalWeight } }
+    const reminder = 'reminder' in input ? normalizeReminder(input.reminder) : state.settings.reminder
+    const next = { entries: state.entries, settings: { heightCm, goalWeight, reminder } }
     await writeState(next)
     return next
   })
