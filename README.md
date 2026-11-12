@@ -20,9 +20,10 @@ change, then a tip:
    `和上次持平 · 稳住就好`. It compares with the last *recorded* reading, which is
    why it says 比上次 rather than 比昨天: after a gap it tells the truth about the
    gap instead of inventing the missing days.
-3. **A tip** — five per language (a lighter dinner, no overeating, less sugar, a
-   walk after eating, an earlier night), stepping to the next one each pass so
-   the same advice never repeats back to back.
+3. **A tip** — eight per language (a lighter dinner, no overeating, less sugar, a
+   walk after eating, an earlier night, water before the meal, a smaller portion,
+   nothing before bed), stepping to the next one each pass so the same advice
+   only comes round again after eight passes.
 
 Eight languages in all, starting with the one the app is set to, one beat every
 5.4 seconds — a language holds 16.2 seconds and the whole cycle is 2.16 minutes.

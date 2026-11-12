@@ -2246,7 +2246,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `比上次轻 ${d} kg · 继续保持`,
         heavier: (d) => `比上次重 ${d} kg · 需要加油`,
         steady: '和上次持平 · 稳住就好',
-        hints: ['晚饭清淡一点', '别暴饮暴食', '少喝含糖饮料', '饭后走一走', '早点睡，别熬夜'],
+        hints: ['晚饭清淡一点', '别暴饮暴食', '少喝含糖饮料', '饭后走一走', '早点睡，别熬夜', '饭前先喝杯水', '主食减一点', '睡前别加餐'],
       },
       {
         lang: 'en',
@@ -2258,7 +2258,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `Down ${d} kg · keep it up`,
         heavier: (d) => `Up ${d} kg · keep going`,
         steady: 'Holding steady · stay with it',
-        hints: ['Keep dinner light', 'No overeating', 'Skip sugary drinks', 'A short walk after', 'Sleep a little earlier'],
+        hints: ['Keep dinner light', 'No overeating', 'Skip sugary drinks', 'A short walk after', 'Sleep a little earlier', 'A glass of water first', 'Pile the greens high', 'No snacks after nine'],
       },
       {
         lang: 'ja',
@@ -2270,7 +2270,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `前回より ${d} kg 減 · その調子`,
         heavier: (d) => `前回より ${d} kg 増 · もう一息`,
         steady: '前回と同じ · このまま',
-        hints: ['夕食はあっさりと', '食べ過ぎに注意', '甘い飲み物を控えめに', '食後に少し歩く', '早めに休む'],
+        hints: ['夕食はあっさりと', '食べ過ぎに注意', '甘い飲み物を控えめに', '食後に少し歩く', '早めに休む', '食前に水を一杯', '主食は控えめに', '夜食は抜きで'],
       },
       {
         lang: 'fr',
@@ -2282,7 +2282,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `${d} kg de moins · continuez`,
         heavier: (d) => `${d} kg de plus · courage`,
         steady: 'Stable · tenez bon',
-        hints: ['Dîner léger ce soir', 'Évitez l’excès', 'Moins de sucres', 'Marchez un peu', 'Couchez-vous plus tôt'],
+        hints: ['Dîner léger ce soir', 'Évitez l’excès', 'Moins de sucres', 'Marchez un peu', 'Couchez-vous plus tôt', 'Un verre d’eau avant', 'Portions plus petites', 'Rien après le dîner'],
       },
       {
         lang: 'es',
@@ -2294,7 +2294,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `${d} kg menos · sigue así`,
         heavier: (d) => `${d} kg más · ánimo`,
         steady: 'Sin cambios · mantén',
-        hints: ['Cena ligera', 'Sin excesos', 'Menos azúcar', 'Camina un poco', 'Duerme temprano'],
+        hints: ['Cena ligera', 'Sin excesos', 'Menos azúcar', 'Camina un poco', 'Duerme temprano', 'Agua antes de comer', 'Raciones pequeñas', 'Nada antes de dormir'],
       },
       {
         lang: 'de',
@@ -2306,7 +2306,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `${d} kg weniger · weiter so`,
         heavier: (d) => `${d} kg mehr · dranbleiben`,
         steady: 'Unverändert · bleib dabei',
-        hints: ['Abends leicht essen', 'Nicht überessen', 'Weniger Zucker', 'Kurz spazieren', 'Früher schlafen'],
+        hints: ['Abends leicht essen', 'Nicht überessen', 'Weniger Zucker', 'Kurz spazieren', 'Früher schlafen', 'Erst ein Glas Wasser', 'Kleinere Portionen', 'Nichts vor dem Schlafen'],
       },
       {
         lang: 'ru',
@@ -2318,7 +2318,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `Минус ${d} кг · так держать`,
         heavier: (d) => `Плюс ${d} кг · не сдавайся`,
         steady: 'Без изменений · держись',
-        hints: ['Ужин полегче', 'Без переедания', 'Меньше сахара', 'Пройдись после еды', 'Ложись пораньше'],
+        hints: ['Ужин полегче', 'Без переедания', 'Меньше сахара', 'Пройдись после еды', 'Ложись пораньше', 'Стакан воды до еды', 'Порции поменьше', 'Не есть перед сном'],
       },
       {
         lang: 'pt',
@@ -2330,7 +2330,7 @@ window.__ModuleLoader__.load({
         lighter: (d) => `Menos ${d} kg · continue`,
         heavier: (d) => `Mais ${d} kg · força`,
         steady: 'Estável · mantenha',
-        hints: ['Jantar leve', 'Sem exageros', 'Menos açúcar', 'Ande um pouco', 'Deite-se cedo'],
+        hints: ['Jantar leve', 'Sem exageros', 'Menos açúcar', 'Ande um pouco', 'Deite-se cedo', 'Água antes da refeição', 'Porções menores', 'Nada antes de dormir'],
       },
     ]
 
