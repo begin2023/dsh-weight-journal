@@ -3,6 +3,15 @@
 A daily weight journal for the DeepSeek Harness Web GUI: one page, one reading a
 day, one honest trend.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img src="docs/screenshot.png" alt="The journal page in the light theme: today's weight and goal progress, a 30-day trend with its 7-reading mean and goal line, weekly comparison bars, and the recent entries" width="100%">
+</picture>
+
+The page in the app's own theme, light and dark. The figures above are sample
+readings, rendered from the plugin's shipped stylesheet rather than pasted from a
+screenshot tool, so what ships is what is shown.
+
 ## Where it lives
 
 A scale icon sits in the left sidebar's panel row (above Settings). It opens the
@@ -76,7 +85,7 @@ the tool; the file stays where it is.
 | `client.js` | Browser half: the page, the chart, the reminder capsule, the sidebar icon, the copy |
 | `cordis.patch.yml` | Inserts the Host row |
 | `locale/*.json` | Plugin Manager title, description, detail document |
-| `docs/` | The detail document and its one feature image |
+| `docs/` | The detail document, its feature image, and the two screenshots |
 | `icon.svg` | Plugin Manager icon |
 | `assets/icon-180.png` | The square tile the plugin market shows |
 
