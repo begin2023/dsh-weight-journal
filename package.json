@@ -45,7 +45,8 @@
     "locale",
     "docs",
     "icon.svg",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "dsh": {
     "bundle": {

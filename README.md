@@ -1,5 +1,7 @@
 # dsh-weight-journal
 
+**English** · [简体中文](README.zh-CN.md)
+
 [![npm](https://img.shields.io/npm/v/dsh-weight-journal?style=flat-square&color=4D6BFE)](https://www.npmjs.com/package/dsh-weight-journal)
 [![license](https://img.shields.io/npm/l/dsh-weight-journal?style=flat-square)](LICENSE)
 
