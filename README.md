@@ -100,3 +100,9 @@ The page composes only from the host's `--dsw-alias-*` and `--dsw-radius-*`
 theme tokens, so it follows light, dark, and every shipped theme without a local
 palette. It imports no Harness Client package: React arrives from the browser
 module table and every control is written here.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
